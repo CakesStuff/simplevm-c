@@ -92,9 +92,6 @@ bool link_together(inp_v* ins, size_t file_1, size_t file_2)
         return false;
     }
 
-    free(VECTOR_EL(*ins, file_1).content);
-    free(VECTOR_EL(*ins, file_2).content);
-
     for(uint64_t i = 0; i < lf_2->label_count; i++)
     {
         if(lf_2->labels[i].type == LABEL_ADDRESS)
@@ -120,16 +117,6 @@ bool link_together(inp_v* ins, size_t file_1, size_t file_2)
         {
             if(!strcmp((char*)lf.labels[j].name, (char*)lf_2->labels[i].name))
             {
-                if(lf.labels[j].type != lf_2->labels[i].type)
-                {
-                    fprintf(stderr, "link: error: conflicting label \"%s\" with types %hhu and %hhu in files \"%s\" and \"%s\"\n",
-                        lf.labels[j].name, lf.labels[j].type, lf_2->labels[i].type, VECTOR_EL(*ins, file_1).name, VECTOR_EL(*ins, file_2).name);
-                    free(lf.labels);
-                    link_file_destroy(lf_1);
-                    link_file_destroy(lf_2);
-                    return false;
-                }
-
                 if(lf.labels[j].type == LABEL_UNDEFINED && lf_2->labels[i].type == LABEL_UNDEFINED)
                 {
                     for(uint64_t n = 0; n < lf_2->relocation_count; n++)
@@ -141,6 +128,16 @@ bool link_together(inp_v* ins, size_t file_1, size_t file_2)
                 }
                 else if(lf.labels[j].type != LABEL_UNDEFINED && lf_2->labels[i].type != LABEL_UNDEFINED)
                 {
+                    if(lf.labels[j].type != lf_2->labels[i].type)
+                    {
+                        fprintf(stderr, "link: error: conflicting label \"%s\" with types %hhu and %hhu in files \"%s\" and \"%s\"\n",
+                            lf.labels[j].name, lf.labels[j].type, lf_2->labels[i].type, VECTOR_EL(*ins, file_1).name, VECTOR_EL(*ins, file_2).name);
+                        free(lf.labels);
+                        link_file_destroy(lf_1);
+                        link_file_destroy(lf_2);
+                        return false;
+                    }
+
                     if(lf.labels[j].value == lf_2->labels[i].value)
                     {
                         for(uint64_t n = 0; n < lf_2->relocation_count; n++)
@@ -209,6 +206,9 @@ bool link_together(inp_v* ins, size_t file_1, size_t file_2)
     memcpy(lf.content + lf_1->size, lf_2->content, lf_2->size);
     link_file_destroy(lf_1);
     link_file_destroy(lf_2);
+
+    free(VECTOR_EL(*ins, file_1).content);
+    free(VECTOR_EL(*ins, file_2).content);
 
     char* new_name = malloc(strlen(VECTOR_EL(*ins, file_1).name) + 1 + strlen(VECTOR_EL(*ins, file_2).name) + 1);
     sprintf(new_name, "%s+%s", VECTOR_EL(*ins, file_1).name, VECTOR_EL(*ins, file_2).name);

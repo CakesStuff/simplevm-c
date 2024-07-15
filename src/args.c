@@ -25,12 +25,9 @@ LanguageMode parse_language_mode(char* mode)
     char* end = strrchr(mode, '.');
     if(end == NULL)
     {
-        end = mode;
+        return MODE_INVALID;
     }
-    else
-    {
-        end++;
-    }
+    end++;
     if(!strcmp(end, "dc"))
     {
         return MODE_DC;
