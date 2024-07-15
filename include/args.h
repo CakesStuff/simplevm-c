@@ -22,7 +22,7 @@ typedef struct {
 DEFINE_VECTOR_OF(CCInput) inp_v;
 
 typedef struct {
-    bool compileOnly, toAssemblyOnly, preprocessOnly;
+    bool linkIncrementally, compileOnly, toAssemblyOnly, preprocessOnly;
     string_v includePaths;
     char* output;
     inp_v inputs;
@@ -34,11 +34,12 @@ typedef struct {
  *     -E: preprocess only
  *     -S: do not assemble
  *     -c: do not link
+ *     -i: link incrementally
  *     -O1: optimize
  *     -O0: do not optimize
- *     -Ipath: add path to include paths
- *     -ofile: compile to file
- *     -xmode: sets the language mode for indeterminable files
+ *     -I<path>: add path to include paths
+ *     -o<file>: compile to file
+ *     -x<mode>: sets the language mode for indeterminable files
  *     -: add file from stdin
  * \param argc argument count
  * \param argv argument strings

@@ -17,6 +17,7 @@ int main(int argc, char* argv[])
                 free(VECTOR_AT(params->inputs, j)->content);
             }
             ccparams_destroy(params);
+            free(params);
             return 1;
         }
     }

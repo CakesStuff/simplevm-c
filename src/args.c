@@ -3,6 +3,7 @@
 CCParams ccparams_create()
 {
     CCParams params = {
+        .linkIncrementally = false,
         .compileOnly = false,
         .preprocessOnly = false,
         .toAssemblyOnly = false,
@@ -54,6 +55,24 @@ CCParams* compile_and_verify_argv(int argc, char* argv[])
     LanguageMode languageMode = MODE_INVALID;
     bool optimize = true;
 
+    if(argc == 2 && (!strcmp(argv[1], "-h") || !strcmp(argv[1], "--help")))
+    {
+        printf("Usage: %s [options] file...\n", argv[0]);
+        printf("Options:\n");
+        printf("    -E: preprocess only\n");
+        printf("    -S: do not assemble\n");
+        printf("    -c: do not link\n");
+        printf("    -i: link incrementally\n");
+        printf("    -O1: optimize\n");
+        printf("    -O0: do not optimize\n");
+        printf("    -I<path>: add path to include paths\n");
+        printf("    -o<file>: compile to file\n");
+        printf("    -x<mode>: sets the language mode for indeterminable files\n");
+        printf("    -: add file from stdin\n");
+        ccparams_destroy(&params);
+        return NULL;
+    }
+
     for(int i = 1; i < argc; i++)
     {
         if(!strcmp(argv[i], "-"))
@@ -87,6 +106,10 @@ CCParams* compile_and_verify_argv(int argc, char* argv[])
         else if(!strcmp(argv[i], "-c"))
         {
             params.compileOnly = true;
+        }
+        else if(!strcmp(argv[i], "-i"))
+        {
+            params.linkIncrementally = true;
         }
         else if(!strcmp(argv[i], "-O0"))
         {
