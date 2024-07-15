@@ -20,6 +20,7 @@
 #define VECTOR_EL(v, i) ((v).arr[i])
 #define VECTOR_ITER(v, i) size_t i = 0; i < (v).size; i++
 #define VECTOR_SIZE(v) ((v).size+0)
+#define VECTOR_REMOVE(v, i) do { (v).arr[i] = (v).arr[--(v).size]; } while(0)
 
 DEFINE_VECTOR_OF(uint8_t) VariableBuffer;
 

@@ -9,6 +9,7 @@ typedef enum {
     MODE_DC,
     MODE_ASM,
     MODE_OBJ,
+    MODE_BIN,
 } LanguageMode;
 
 typedef struct {
