@@ -62,9 +62,9 @@ void link_to_buffer(LinkFile* lf, uint8_t* content)
 
 void link_file_destroy(LinkFile* lf)
 {
-    free(lf->labels);
-    free(lf->relocations);
-    free(lf->content);
+    if(lf->label_count != 0)free(lf->labels);
+    if(lf->relocation_count != 0)free(lf->relocations);
+    if(lf->size != 0)free(lf->content);
     free(lf);
 }
 
@@ -74,7 +74,6 @@ bool link_together(inp_v* ins, size_t file_1, size_t file_2)
     if(lf_1 == NULL)
     {
         fprintf(stderr, "link: error: failed to parse object file \"%s\"\n", VECTOR_EL(*ins, file_1).name);
-        link_file_destroy(lf_1);
         return false;
     }
     LinkFile* lf_2 = link_from_buffer(VECTOR_EL(*ins, file_2).content, VECTOR_EL(*ins, file_2).content_size);
@@ -82,7 +81,6 @@ bool link_together(inp_v* ins, size_t file_1, size_t file_2)
     {
         fprintf(stderr, "link: error: failed to parse object file \"%s\"\n", VECTOR_EL(*ins, file_2).name);
         link_file_destroy(lf_1);
-        link_file_destroy(lf_2);
         return false;
     }
 
@@ -241,7 +239,6 @@ bool link_resolve(CCInput* in)
     if(lf == NULL)
     {
         fprintf(stderr, "link: error: failed to parse object file \"%s\"\n", in->name);
-        link_file_destroy(lf);
         return false;
     }
     for(uint64_t i = 0; i < lf->relocation_count; i++)
