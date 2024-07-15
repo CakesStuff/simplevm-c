@@ -52,7 +52,7 @@ int main(int argc, char* argv[])
 
     while(VECTOR_SIZE(params->inputs) > 1)
     {
-        if(!link_together(&params->inputs, 0, 1));
+        if(!link_together(&params->inputs, 0, 1))
         {
             for(VECTOR_ITER(params->inputs, i))
             {

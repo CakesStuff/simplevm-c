@@ -120,7 +120,7 @@ bool link_together(inp_v* ins, size_t file_1, size_t file_2)
         uint64_t j = 0;
         for(j = 0; j < lf_1->label_count; j++)
         {
-            if(!strcmp(lf.labels[j].name, lf_2->labels[i].name))
+            if(!strcmp((char*)lf.labels[j].name, (char*)lf_2->labels[i].name))
             {
                 if(lf.labels[j].type != lf_2->labels[i].type)
                 {
@@ -206,6 +206,7 @@ bool link_together(inp_v* ins, size_t file_1, size_t file_2)
         lf.relocations[lf_1->relocation_count + i] = lf_2->relocations[i];
     }
     lf.size = lf_1->size + lf_2->size;
+    lf.content = malloc(lf.size);
     memcpy(lf.content, lf_1->content, lf_1->size);
     memcpy(lf.content + lf_1->size, lf_2->content, lf_2->size);
     link_file_destroy(lf_1);
