@@ -27,10 +27,12 @@ bool file_load(CCInput* in)
     if(fread(in->content, in->content_size, 1, file) != 1)
     {
         free(in->content);
+        fclose(file);
         return false;
     }
     else
     {
+        fclose(file);
         return true;
     }
 }
@@ -48,5 +50,39 @@ bool file_load_stdin(CCInput* in)
     in->content = malloc(in->content_size);
     memcpy(in->content, VECTOR_AT(buf, 0), in->content_size);
     VECTOR_FREE(buf);
+    return true;
+}
+
+void file_adjust_ending(CCInput* in)
+{
+    char* ending = strrchr(in->name, '.');
+    size_t len;
+    if(ending)
+    {
+        len = ending - in->name;
+    }
+    else
+    {
+        len = strlen(in->name);
+    }
+    char* new_name = malloc(len + 4 /* MAX ENDING SIZE (WITH DOT) */ + 1);
+    sprintf(new_name, "%.*s.%s", len, in->name, 
+        in->type == MODE_DC ? "pdc" : in->type == MODE_ASM ? "asm" : in->type == MODE_OBJ ? "o" : "inv");
+    in->name = new_name;
+}
+
+bool file_write(CCInput* in, char* path)
+{
+    FILE* file = fopen(path, "wb");
+    if(!file)
+    {
+        return false;
+    }
+    if(fwrite(in->content, in->content_size, 1, file) != 1)
+    {
+        fclose(file);
+        return false;
+    }
+    fclose(file);
     return true;
 }

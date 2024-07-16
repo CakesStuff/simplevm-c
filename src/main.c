@@ -27,8 +27,19 @@ int main(int argc, char* argv[])
 
     if(params->preprocessOnly)
     {
-        //TODO: WRITE FILES
+        for(VECTOR_ITER(params->inputs, i))
+        {
+            file_adjust_ending(VECTOR_AT(params->inputs, i));
+            if(!file_write(VECTOR_AT(params->inputs, i), params->output ? params->output : VECTOR_EL(params->inputs, i).name))
+            {
+                fprintf("%s: warn: could not write output \"%s\"\n", argv[0], params->output ? params->output : VECTOR_EL(params->inputs, i).name);
+            }
+            free(VECTOR_EL(params->inputs, i).name);
+            free(VECTOR_EL(params->inputs, i).content);
+        }
 
+        ccparams_destroy(params);
+        free(params);
         return 0;
     }
 
@@ -36,8 +47,19 @@ int main(int argc, char* argv[])
 
     if(params->toAssemblyOnly)
     {
-        //TODO: WRITE FILES
+        for(VECTOR_ITER(params->inputs, i))
+        {
+            file_adjust_ending(VECTOR_AT(params->inputs, i));
+            if(!file_write(VECTOR_AT(params->inputs, i), params->output ? params->output : VECTOR_EL(params->inputs, i).name))
+            {
+                fprintf("%s: warn: could not write output \"%s\"\n", argv[0], params->output ? params->output : VECTOR_EL(params->inputs, i).name);
+            }
+            free(VECTOR_EL(params->inputs, i).name);
+            free(VECTOR_EL(params->inputs, i).content);
+        }
 
+        ccparams_destroy(params);
+        free(params);
         return 0;
     }
 
@@ -45,8 +67,19 @@ int main(int argc, char* argv[])
 
     if(params->compileOnly)
     {
-        //TODO: WRITE FILES
+        for(VECTOR_ITER(params->inputs, i))
+        {
+            file_adjust_ending(VECTOR_AT(params->inputs, i));
+            if(!file_write(VECTOR_AT(params->inputs, i), params->output ? params->output : VECTOR_EL(params->inputs, i).name))
+            {
+                fprintf("%s: warn: could not write output \"%s\"\n", argv[0], params->output ? params->output : VECTOR_EL(params->inputs, i).name);
+            }
+            free(VECTOR_EL(params->inputs, i).name);
+            free(VECTOR_EL(params->inputs, i).content);
+        }
 
+        ccparams_destroy(params);
+        free(params);
         return 0;
     }
 
@@ -64,16 +97,34 @@ int main(int argc, char* argv[])
         }
     }
 
+    if(params->linkIncrementally)
+    {
+        if(!file_write(VECTOR_AT(params->inputs, 0), params->output ? params->output : "a.out"))
+        {
+            fprintf(stderr, "%s: error: could not write final output \"%s\"\n", argv[0], params->output ? params->output : "a.out");
+        }
+
+        free(VECTOR_EL(params->inputs, 0).content);
+        ccparams_destroy(params);
+        free(params);
+        return 0;
+    }
+
     if(!link_resolve(VECTOR_AT(params->inputs, 0)))
     {
-        for(VECTOR_ITER(params->inputs, i))
-        {
-            free(VECTOR_EL(params->inputs, i).content);
-        }
+        free(VECTOR_EL(params->inputs, 0).content);
         ccparams_destroy(params);
         free(params);
         return 1;
     }
 
-    //TODO: WRITE FINAL BINARY
+    if(!file_write(VECTOR_AT(params->inputs, 0), params->output ? params->output : "a.out"))
+    {
+        fprintf(stderr, "%s: error: could not write final output \"%s\"\n", argv[0], params->output ? params->output : "a.out");
+    }
+
+    free(VECTOR_EL(params->inputs, 0).content);
+    ccparams_destroy(params);
+    free(params);
+    return 0;
 }
