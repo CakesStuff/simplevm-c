@@ -56,7 +56,7 @@ bool file_load_stdin(CCInput* in)
 void file_adjust_ending(CCInput* in)
 {
     char* ending = strrchr(in->name, '.');
-    size_t len;
+    int len;
     if(ending)
     {
         len = ending - in->name;

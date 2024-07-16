@@ -32,7 +32,7 @@ int main(int argc, char* argv[])
             file_adjust_ending(VECTOR_AT(params->inputs, i));
             if(!file_write(VECTOR_AT(params->inputs, i), params->output ? params->output : VECTOR_EL(params->inputs, i).name))
             {
-                fprintf("%s: warn: could not write output \"%s\"\n", argv[0], params->output ? params->output : VECTOR_EL(params->inputs, i).name);
+                fprintf(stderr, "%s: warn: could not write output \"%s\"\n", argv[0], params->output ? params->output : VECTOR_EL(params->inputs, i).name);
             }
             free(VECTOR_EL(params->inputs, i).name);
             free(VECTOR_EL(params->inputs, i).content);
@@ -52,7 +52,7 @@ int main(int argc, char* argv[])
             file_adjust_ending(VECTOR_AT(params->inputs, i));
             if(!file_write(VECTOR_AT(params->inputs, i), params->output ? params->output : VECTOR_EL(params->inputs, i).name))
             {
-                fprintf("%s: warn: could not write output \"%s\"\n", argv[0], params->output ? params->output : VECTOR_EL(params->inputs, i).name);
+                fprintf(stderr, "%s: warn: could not write output \"%s\"\n", argv[0], params->output ? params->output : VECTOR_EL(params->inputs, i).name);
             }
             free(VECTOR_EL(params->inputs, i).name);
             free(VECTOR_EL(params->inputs, i).content);
@@ -72,7 +72,7 @@ int main(int argc, char* argv[])
             file_adjust_ending(VECTOR_AT(params->inputs, i));
             if(!file_write(VECTOR_AT(params->inputs, i), params->output ? params->output : VECTOR_EL(params->inputs, i).name))
             {
-                fprintf("%s: warn: could not write output \"%s\"\n", argv[0], params->output ? params->output : VECTOR_EL(params->inputs, i).name);
+                fprintf(stderr, "%s: warn: could not write output \"%s\"\n", argv[0], params->output ? params->output : VECTOR_EL(params->inputs, i).name);
             }
             free(VECTOR_EL(params->inputs, i).name);
             free(VECTOR_EL(params->inputs, i).content);
