@@ -27,6 +27,7 @@ typedef struct {
     string_v includePaths;
     char* output;
     inp_v inputs;
+    char* entry;
 } CCParams;
 
 /**

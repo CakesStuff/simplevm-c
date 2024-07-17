@@ -8,6 +8,7 @@ CCParams ccparams_create()
         .preprocessOnly = false,
         .toAssemblyOnly = false,
         .output = NULL,
+        .entry = NULL,
     };
     VECTOR_INIT(params.includePaths);
     VECTOR_INIT(params.inputs);
@@ -25,9 +26,12 @@ LanguageMode parse_language_mode(char* mode)
     char* end = strrchr(mode, '.');
     if(end == NULL)
     {
-        return MODE_INVALID;
+        end = mode;
     }
-    end++;
+    else
+    {
+        end++;
+    }
     if(!strcmp(end, "dc"))
     {
         return MODE_DC;
@@ -119,6 +123,10 @@ CCParams* compile_and_verify_argv(int argc, char* argv[])
         else if(!strncmp(argv[i], "-o", 2))
         {
             params.output = argv[i] + 2;
+        }
+        else if(!strncmp(argv[i], "-e", 2))
+        {
+            params.entry = argv[i] + 2;
         }
         else if(!strncmp(argv[i], "-x", 2))
         {

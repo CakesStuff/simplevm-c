@@ -8,6 +8,7 @@
 #include<memory.h>
 #include<dirent.h>
 #include<unistd.h>
+#include<ctype.h>
 
 #define DEFINE_VECTOR_OF(x) typedef struct { size_t size, cap; x* arr; }
 
@@ -21,7 +22,10 @@
 #define VECTOR_ITER(v, i) size_t i = 0; i < (v).size; i++
 #define VECTOR_SIZE(v) ((v).size+0)
 #define VECTOR_REMOVE(v, i) do { (v).arr[i] = (v).arr[--(v).size]; } while(0)
+#define VECTOR_CUT(v, i) do { if((i) != (v).size - 1) memmove(&(v).arr[i], &(v).arr[i + 1], ((v).size - (i) - 1) * sizeof((v).arr[0])); (v).size--; } while(0)
 
 DEFINE_VECTOR_OF(uint8_t) VariableBuffer;
+
+#define ARRAYSIZE(a) (sizeof(a) / sizeof(a[0]))
 
 #endif /* _CORE_H */

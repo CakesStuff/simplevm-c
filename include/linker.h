@@ -16,7 +16,7 @@ typedef enum {
 } LinkLabelType;
 
 typedef struct {
-    uint8_t name[16];
+    uint8_t name[32];
     uint8_t type;
     uint64_t value;
 } __attribute__((packed)) LinkLabel;

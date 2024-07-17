@@ -1,6 +1,9 @@
 #include<args.h>
 #include<files.h>
+#include<assembler.h>
 #include<linker.h>
+
+//TODO: FIX LABEL SIZE ASSUMPTIONS
 
 int main(int argc, char* argv[])
 {
@@ -63,7 +66,20 @@ int main(int argc, char* argv[])
         return 0;
     }
 
-    //TODO: ASSEMBLE
+    for(VECTOR_ITER(params->inputs, i))
+    {
+        if(VECTOR_EL(params->inputs, i).type != MODE_ASM)continue;
+        if(!asm_assemble(VECTOR_AT(params->inputs, i)))
+        {
+            for(VECTOR_ITER(params->inputs, j))
+            {
+                free(VECTOR_EL(params->inputs, j).content);
+            }
+            ccparams_destroy(params);
+            free(params);
+            return 1;
+        }
+    }
 
     if(params->compileOnly)
     {
@@ -109,6 +125,8 @@ int main(int argc, char* argv[])
         free(params);
         return 0;
     }
+
+    //TODO: LINK ENTRY
 
     if(!link_resolve(VECTOR_AT(params->inputs, 0)))
     {
