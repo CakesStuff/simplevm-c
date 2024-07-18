@@ -3,7 +3,7 @@
 #include<assembler.h>
 #include<linker.h>
 
-//TODO: FIX LABEL SIZE ASSUMPTIONS
+//TODO: ADD FUNC FOR LEA OR REMOVE?
 
 int main(int argc, char* argv[])
 {

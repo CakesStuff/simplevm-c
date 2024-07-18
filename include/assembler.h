@@ -90,7 +90,7 @@ uint16_t make_op_shift_left(Register dst, Register src, Nibble amount);
 uint16_t make_op_shift_right_logical(Register dst, Register src, Nibble amount);
 uint16_t make_op_shift_right_arithmetic(Register dst, Register src, Nibble amount);
 uint16_t make_op_load_word(Register dst, Register segment, Register addr);
-uint16_t make_op_store_word(Register dst, Register segment, Register addr);
+uint16_t make_op_store_word(Register src, Register segment, Register addr);
 uint16_t make_op_jump_offset(Lit10Bit amount);
 uint16_t make_op_test(Register one, Register two, TestOp to);
 uint16_t make_op_add_if(Register dst, Register src, Nibble half);
@@ -101,7 +101,7 @@ uint16_t make_op_system_slow(Register handler, Nibble arg);
 uint16_t make_op_set_and_save(Register to_set, Register num, Register to_save);
 uint16_t make_op_add_and_save(Register to_add_to, Register num, Register to_save);
 uint16_t make_op_load_byte(Register dst, Register segment, Register addr);
-uint16_t make_op_store_byte(Register dst, Register segment, Register addr);
+uint16_t make_op_store_byte(Register src, Register segment, Register addr);
 uint16_t make_op_mul(Register dst, Register op1, Register op2);
 uint16_t make_op_imm(Register reg, Lit12Bit val);
 
@@ -125,6 +125,9 @@ typedef enum {
     ASM_INS_ADD,
     ASM_INS_SUB,
     ASM_INS_LEA,
+    ASM_INS_PUSH,//TODO:
+    ASM_INS_POP,//TODO:
+    ASM_INS_HLT,//TODO:
     //TODO: MORE INSTRUCTIONS
 } AsmInstructionType;
 
@@ -158,7 +161,7 @@ typedef struct {
     AsmTokenType type;
     size_t line;
     union {
-        uint8_t label_name[32];
+        uint8_t label_name[sizeof(((LinkLabel*)0)->name)];
         uint64_t literal_value;
         Register reg;
         AsmInstructionType instruction;
