@@ -964,6 +964,7 @@ bool asm_assemble(CCInput* in)
                                     goto cleanup;
                                 }
                                 clB = VECTOR_EL(tokens, i);
+                                i++;
                                 if(clB.type != ASM_TOKEN_CLOSED_SQUARE)
                                 {
                                     fprintf(stderr, "asm: error: mov expects a valid destination (%s:%lu)\n", in->name, dst.line);
@@ -1029,7 +1030,7 @@ bool asm_assemble(CCInput* in)
                             }
                             AsmToken src = VECTOR_EL(tokens, i);
                             i++;
-                            if(src.type == ASM_TOKEN_BYTE || ASM_TOKEN_WORD)
+                            if(src.type == ASM_TOKEN_BYTE || src.type == ASM_TOKEN_WORD)
                             {
                                 AsmToken opB = VECTOR_EL(tokens, i);
                                 i++;
@@ -1058,6 +1059,7 @@ bool asm_assemble(CCInput* in)
                                         goto cleanup;
                                     }
                                     clB = VECTOR_EL(tokens, i);
+                                    i++;
                                     if(clB.type != ASM_TOKEN_CLOSED_SQUARE)
                                     {
                                         fprintf(stderr, "asm: error: mov expects a valid source (%s:%lu)\n", in->name, dst.line);
@@ -1100,14 +1102,142 @@ bool asm_assemble(CCInput* in)
                             }
                             else if(src.type == ASM_TOKEN_REGISTER)
                             {
-                                //TODO:
+                                AsmToken end = VECTOR_EL(tokens, i);
+                                if(end.type == ASM_TOKEN_NEWLINE)
+                                {
+                                    VECTOR_PUSH(instructions, make_op_add(dst.reg, Zero, src.reg));
+                                }
+                                else if(end.type == ASM_TOKEN_PLUS || end.type == ASM_TOKEN_MUL || end.type == ASM_TOKEN_MINUS)
+                                {
+                                    i++;
+                                    AsmToken src2 = VECTOR_EL(tokens, i);
+                                    i++;
+                                    if(src2.type != ASM_TOKEN_REGISTER)
+                                    {
+                                        fprintf(stderr, "asm: error: can only use registers for +/-/* during mov (%s:%lu)\n",
+                                            in->name, dst.line);
+                                        goto cleanup;
+                                    }
+                                    AsmToken newLine = VECTOR_EL(tokens, i);
+                                    if(newLine.type != ASM_TOKEN_NEWLINE)
+                                    {
+                                        fprintf(stderr, "asm: error: trailing tokens after mov (%s:%lu)\n", in->name, dst.line);
+                                        goto cleanup;
+                                    }
+
+                                    if(end.type == ASM_TOKEN_PLUS)
+                                            VECTOR_PUSH(instructions, make_op_add(dst.reg, src.reg, src2.reg));
+                                    else if(end.type == ASM_TOKEN_MINUS)
+                                            VECTOR_PUSH(instructions, make_op_sub(dst.reg, src.reg, src2.reg));
+                                    else
+                                            VECTOR_PUSH(instructions, make_op_mul(dst.reg, src.reg, src2.reg));
+                                }
+                                else if(end.type == ASM_TOKEN_SHL || end.type == ASM_TOKEN_SHR_M || end.type == ASM_TOKEN_SHR_P)
+                                {
+                                    i++;
+                                    AsmToken literal = VECTOR_EL(tokens, i);
+                                    i++;
+                                    if(literal.type != ASM_TOKEN_LITERAL)
+                                    {
+                                        fprintf(stderr, "asm: error: can only shift by a literal during mov (%s:%lu)\n", in->name, dst.line);
+                                        goto cleanup;
+                                    }
+                                    AsmToken newLine = VECTOR_EL(tokens, i);
+                                    if(newLine.type != ASM_TOKEN_NEWLINE)
+                                    {
+                                        fprintf(stderr, "asm: error: trailing tokens after mov (%s:%lu)\n", in->name, dst.line);
+                                        goto cleanup;
+                                    }
+                                    if(literal.literal_value > 15)
+                                    {
+                                        fprintf(stderr, "asm: error: value %lu out of bounds [0-%d] (%s:%lu)\n",
+                                            literal.literal_value, 15, in->name, dst.line);
+                                        goto cleanup;
+                                    }
+                                    
+                                    if(end.type == ASM_TOKEN_SHL)
+                                        VECTOR_PUSH(instructions, make_op_shift_left(dst.reg, src.reg, literal.literal_value));
+                                    else if(end.type == ASM_TOKEN_SHR_P)
+                                        VECTOR_PUSH(instructions, make_op_shift_right_logical(dst.reg, src.reg, literal.literal_value));
+                                    else
+                                        VECTOR_PUSH(instructions, make_op_shift_right_arithmetic(dst.reg, src.reg, literal.literal_value));
+                                }
+                                else
+                                {
+                                    fprintf(stderr, "asm: error: mov expects a valid source (%s:%lu)\n", in->name, dst.line);
+                                    goto cleanup;
+                                }
                             }
                             else if(src.type == ASM_TOKEN_LABEL)
                             {
-                                //TODO:
+                                if(dst.reg == PC)
+                                {
+                                    fprintf(stderr, "asm: error: cannot mov label to PC (%s:%lu)\n", in->name, dst.line);
+                                    goto cleanup;
+                                }
+                                AsmToken newLine = VECTOR_EL(tokens, i);
+                                if(newLine.type != ASM_TOKEN_NEWLINE)
+                                {
+                                    fprintf(stderr, "asm: error: trailing tokens after mov (%s:%lu)\n", in->name, dst.line);
+                                    goto cleanup;
+                                }
+                                uint8_t name[sizeof(((LinkLabel*)0)->name)];
+                                if(src.label_name[0] == '.' && !current)
+                                {
+                                    fprintf(stderr, "asm: error: local label in global scope (%s:%lu)\n", in->name, dst.line);
+                                    goto cleanup;
+                                }
+                                if(src.label_name[0] == '.' && (strlen((char*)current->name) + strlen((char*)src.label_name) < sizeof(((LinkLabel*)0)->name)))
+                                {
+                                    sprintf((char*)name, "%s%s", current->name, src.label_name);
+                                }
+                                else if(src.label_name[0] == '.')
+                                {
+                                    fprintf(stderr, "asm: error:label too big (%s:%lu)\n", in->name, dst.line);
+                                    goto cleanup;
+                                }
+                                else
+                                {
+                                    strcpy((char*)name, (char*)src.label_name);
+                                }
+
+                                size_t j;
+                                for(j = 0; j < VECTOR_SIZE(*labels); j++)
+                                {
+                                    if(!strcmp((char*)VECTOR_EL(*labels, j).name, (char*)name))
+                                    {
+                                        LinkRelocation rel = {
+                                            .label_id = j,
+                                            .offset = VECTOR_SIZE(instructions) * 2,
+                                            .type = RELOCATION_UPPER12_LOWER12,
+                                        };
+                                        VECTOR_PUSH(relocations, rel);
+                                        VECTOR_PUSH(instructions, make_op_imm(dst.reg, 0));
+                                        VECTOR_PUSH(instructions, make_op_shift_left(dst.reg, dst.reg, 4));
+                                        rel = (LinkRelocation){
+                                            .label_id = j,
+                                            .offset = VECTOR_SIZE(instructions) * 2,
+                                            .type = RELOCATION_LOWER4_LOWER4,
+                                        };
+                                        VECTOR_PUSH(relocations, rel);
+                                        VECTOR_PUSH(instructions, make_op_add_imm(dst.reg, 0));
+                                        break;
+                                    }
+                                }
+                            
+                                if(j == VECTOR_SIZE(*labels))
+                                {
+                                    fprintf(stderr, "asm: error: could not find label %s (%s:%lu)\n", name, in->name, dst.line);
+                                    goto cleanup;
+                                }
                             }
                             else if(src.type == ASM_TOKEN_LITERAL)
                             {
+                                if(dst.reg == PC)
+                                {
+                                    fprintf(stderr, "asm: error: cannot mov literal to PC (%s:%lu)\n", in->name, dst.line);
+                                    goto cleanup;
+                                }
                                 AsmToken newLine = VECTOR_EL(tokens, i);
                                 if(newLine.type != ASM_TOKEN_NEWLINE)
                                 {
@@ -1133,6 +1263,11 @@ bool asm_assemble(CCInput* in)
                             }
                             else if(src.type == ASM_TOKEN_MINUS)
                             {
+                                if(dst.reg == PC)
+                                {
+                                    fprintf(stderr, "asm: error: cannot mov literal to PC (%s:%lu)\n", in->name, dst.line);
+                                    goto cleanup;
+                                }
                                 AsmToken lit = VECTOR_EL(tokens, i);
                                 i++;
                                 if(lit.type != ASM_TOKEN_LITERAL)
@@ -1172,6 +1307,11 @@ bool asm_assemble(CCInput* in)
                             fprintf(stderr, "asm: error: lea expects a register and a label (%s:%lu)\n", in->name, dst.line);
                             goto cleanup;
                         }
+                        if(dst.reg == PC)
+                        {
+                            fprintf(stderr, "asm: error: cannot mov label to PC (%s:%lu)\n", in->name, dst.line);
+                            goto cleanup;
+                        }
                         AsmToken comma = VECTOR_EL(tokens, i);
                         i++;
                         if(comma.type != ASM_TOKEN_COMMA)
@@ -1194,9 +1334,19 @@ bool asm_assemble(CCInput* in)
                         }
                         
                         uint8_t name[sizeof(((LinkLabel*)0)->name)];
+                        if(label.label_name[0] == '.' && !current)
+                        {
+                            fprintf(stderr, "asm: error: local label in global scope (%s:%lu)\n", in->name, dst.line);
+                            goto cleanup;
+                        }
                         if(label.label_name[0] == '.' && (strlen((char*)current->name) + strlen((char*)label.label_name) < sizeof(((LinkLabel*)0)->name)))
                         {
                             sprintf((char*)name, "%s%s", current->name, label.label_name);
+                        }
+                        else if(label.label_name[0] == '.')
+                        {
+                            fprintf(stderr, "asm: error: label too big (%s:%lu)\n", in->name, dst.line);
+                            goto cleanup;
                         }
                         else
                         {
@@ -1223,7 +1373,14 @@ bool asm_assemble(CCInput* in)
                                 };
                                 VECTOR_PUSH(relocations, rel);
                                 VECTOR_PUSH(instructions, make_op_add_imm(dst.reg, 0));
+                                break;
                             }
+                        }
+
+                        if(j == VECTOR_SIZE(*labels))
+                        {
+                            fprintf(stderr, "asm: error: could not find label %s (%s:%lu)\n", name, in->name, dst.line);
+                            goto cleanup;
                         }
                     }
                         break;
@@ -1380,7 +1537,7 @@ bool asm_assemble(CCInput* in)
                     if(!strcmp((char*)VECTOR_EL(*labels, j).name, (char*)name))
                     {
                         VECTOR_EL(*labels, j).value = VECTOR_SIZE(instructions) * 2;
-                        if(label.label_name[0] != '.')current = VECTOR_AT(*labels, i);
+                        if(label.label_name[0] != '.')current = VECTOR_AT(*labels, j);
                         break;
                     }
                 }
