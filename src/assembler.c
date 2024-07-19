@@ -190,7 +190,16 @@ char* AsmInstructionStrings[] = {
     [ASM_INS_LEA] = "lea",
     [ASM_INS_PUSH] = "push",
     [ASM_INS_POP] = "pop",
+    [ASM_INS_PEEK] = "peek",
     [ASM_INS_HLT] = "hlt",
+    [ASM_INS_SWP] = "swp",
+    [ASM_INS_SADD] = "sadd",
+    [ASM_INS_SSUB] = "ssub",
+    [ASM_INS_SSWP] = "sswp",
+    [ASM_INS_SDUP] = "sdup",
+    [ASM_INS_SROT] = "srot",
+    [ASM_INS_CMP] = "cmp",
+    [ASM_INS_LSTO] = "lsto",
 };
 
 token_v asm_tokenize(uint8_t* content, size_t size, char* filename)
@@ -1508,7 +1517,198 @@ bool asm_assemble(CCInput* in)
                         }
                     }
                         break;
-                    //TODO: PUSH, POP, STACK OPS, HLT AND JMP
+                    case ASM_INS_PUSH:
+                    {
+                        AsmToken reg = VECTOR_EL(tokens, i);
+                        i++;
+                        if(reg.type != ASM_TOKEN_REGISTER)
+                        {
+                            fprintf(stderr, "asm: error: push expects a register (%s:%lu)\n", in->name, reg.line);
+                            goto cleanup;
+                        }
+                        AsmToken newLine = VECTOR_EL(tokens, i);
+                        if(newLine.type != ASM_TOKEN_NEWLINE)
+                        {
+                            fprintf(stderr, "asm: error: trailing tokens after push (%s:%lu)\n", in->name, reg.line);
+                            goto cleanup;
+                        }
+                        VECTOR_PUSH(instructions, make_op_stack(reg.reg, SP, StackPush));
+                    }
+                        break;
+                    case ASM_INS_POP:
+                    {
+                        AsmToken reg = VECTOR_EL(tokens, i);
+                        i++;
+                        if(reg.type != ASM_TOKEN_REGISTER)
+                        {
+                            fprintf(stderr, "asm: error: pop expects a register (%s:%lu)\n", in->name, reg.line);
+                            goto cleanup;
+                        }
+                        AsmToken newLine = VECTOR_EL(tokens, i);
+                        if(newLine.type != ASM_TOKEN_NEWLINE)
+                        {
+                            fprintf(stderr, "asm: error: trailing tokens after pop (%s:%lu)\n", in->name, reg.line);
+                            goto cleanup;
+                        }
+                        VECTOR_PUSH(instructions, make_op_stack(reg.reg, SP, StackPop));
+                    }
+                        break;
+                    case ASM_INS_PEEK:
+                    {
+                        AsmToken reg = VECTOR_EL(tokens, i);
+                        i++;
+                        if(reg.type != ASM_TOKEN_REGISTER)
+                        {
+                            fprintf(stderr, "asm: error: peek expects a register (%s:%lu)\n", in->name, reg.line);
+                            goto cleanup;
+                        }
+                        AsmToken newLine = VECTOR_EL(tokens, i);
+                        if(newLine.type != ASM_TOKEN_NEWLINE)
+                        {
+                            fprintf(stderr, "asm: error: trailing tokens after peel (%s:%lu)\n", in->name, reg.line);
+                            goto cleanup;
+                        }
+                        VECTOR_PUSH(instructions, make_op_stack(reg.reg, SP, StackPeek));
+                    }
+                        break;
+                    case ASM_INS_HLT:
+                    {
+                        AsmToken newLine = VECTOR_EL(tokens, i);
+                        if(newLine.type != ASM_TOKEN_NEWLINE)
+                        {
+                            fprintf(stderr, "asm: error: trailing tokens after hlt (%s:%lu)\n", in->name, newLine.line);
+                            goto cleanup;
+                        }
+                        VECTOR_PUSH(instructions, make_op_imm(C, 0xf0));
+                        VECTOR_PUSH(instructions, make_op_system_slow(C, 0));
+                    }
+                        break;
+                    case ASM_INS_SWP:
+                    {
+                        AsmToken reg1 = VECTOR_EL(tokens, i);
+                        i++;
+                        if(reg1.type != ASM_TOKEN_REGISTER)
+                        {
+                            fprintf(stderr, "asm: error: swp expects two registers (%s:%lu)\n", in->name, reg1.line);
+                            goto cleanup;
+                        }
+                        AsmToken comma = VECTOR_EL(tokens, i);
+                        i++;
+                        if(comma.type != ASM_TOKEN_COMMA)
+                        {
+                            fprintf(stderr, "asm: error: swp expects two registers (%s:%lu)\n", in->name, reg1.line);
+                            goto cleanup;
+                        }
+                        AsmToken reg2 = VECTOR_EL(tokens, i);
+                        i++;
+                        if(reg2.type != ASM_TOKEN_REGISTER)
+                        {
+                            fprintf(stderr, "asm: error: swp expects two registers (%s:%lu)\n", in->name, reg1.line);
+                            goto cleanup;
+                        }
+                        AsmToken newLine = VECTOR_EL(tokens, i);
+                        if(newLine.type != ASM_TOKEN_NEWLINE)
+                        {
+                            fprintf(stderr, "asm: error: trailing tokens after swp (%s:%lu)\n", in->name, reg1.line);
+                            goto cleanup;
+                        }
+                        VECTOR_PUSH(instructions, make_op_set_and_save(reg1.reg, reg2.reg, reg1.reg));
+                    }
+                        break;
+                    case ASM_INS_SADD:
+                    {
+                        AsmToken newLine = VECTOR_EL(tokens, i);
+                        if(newLine.type != ASM_TOKEN_NEWLINE)
+                        {
+                            fprintf(stderr, "asm: error: trailing tokens after sadd (%s:%lu)\n", in->name, newLine.line);
+                            goto cleanup;
+                        }
+                        VECTOR_PUSH(instructions, make_op_stack(Zero, SP, StackAdd));
+                    }
+                        break;
+                    case ASM_INS_SSUB:
+                    {
+                        AsmToken newLine = VECTOR_EL(tokens, i);
+                        if(newLine.type != ASM_TOKEN_NEWLINE)
+                        {
+                            fprintf(stderr, "asm: error: trailing tokens after ssub (%s:%lu)\n", in->name, newLine.line);
+                            goto cleanup;
+                        }
+                        VECTOR_PUSH(instructions, make_op_stack(Zero, SP, StackSub));
+                    }
+                        break;
+                    case ASM_INS_SSWP:
+                    {
+                        AsmToken newLine = VECTOR_EL(tokens, i);
+                        if(newLine.type != ASM_TOKEN_NEWLINE)
+                        {
+                            fprintf(stderr, "asm: error: trailing tokens after sswp (%s:%lu)\n", in->name, newLine.line);
+                            goto cleanup;
+                        }
+                        VECTOR_PUSH(instructions, make_op_stack(Zero, SP, StackSwap));
+                    }
+                        break;
+                    case ASM_INS_SDUP:
+                    {
+                        AsmToken newLine = VECTOR_EL(tokens, i);
+                        if(newLine.type != ASM_TOKEN_NEWLINE)
+                        {
+                            fprintf(stderr, "asm: error: trailing tokens after sdup (%s:%lu)\n", in->name, newLine.line);
+                            goto cleanup;
+                        }
+                        VECTOR_PUSH(instructions, make_op_stack(Zero, SP, StackDup));
+                    }
+                        break;
+                    case ASM_INS_SROT:
+                    {
+                        AsmToken newLine = VECTOR_EL(tokens, i);
+                        if(newLine.type != ASM_TOKEN_NEWLINE)
+                        {
+                            fprintf(stderr, "asm: error: trailing tokens after srot (%s:%lu)\n", in->name, newLine.line);
+                            goto cleanup;
+                        }
+                        VECTOR_PUSH(instructions, make_op_stack(Zero, SP, StackRotate));
+                    }
+                        break;
+                    case ASM_INS_LSTO:
+                    {
+                        AsmToken reg = VECTOR_EL(tokens, i);
+                        i++;
+                        if(reg.type != ASM_TOKEN_REGISTER)
+                        {
+                            fprintf(stderr, "asm: error: lsto expects a register as a destination (%s:%lu)\n", in->name, reg.line);
+                            goto cleanup;
+                        }
+                        AsmToken comma = VECTOR_EL(tokens, i);
+                        i++;
+                        if(reg.type != ASM_TOKEN_COMMA)
+                        {
+                            fprintf(stderr, "asm: error: lsto expects a register and a constant (%s:%lu)\n", in->name, reg.line);
+                            goto cleanup;
+                        }
+                        AsmToken literal = VECTOR_EL(tokens, i);
+                        i++;
+                        if(literal.type != ASM_TOKEN_LITERAL)
+                        {
+                            fprintf(stderr, "asm: error: lsto expects a literal (%s:%lu)\n", in->name, reg.line);
+                            goto cleanup;
+                        }
+                        AsmToken newLine = VECTOR_EL(tokens, i);
+                        if(newLine.type != ASM_TOKEN_NEWLINE)
+                        {
+                            fprintf(stderr, "asm: error: trailing tokens after lsto (%s:%lu)\n", in->name, reg.line);
+                            goto cleanup;
+                        }
+                        if(literal.literal_value > 15)
+                        {
+                            fprintf(stderr, "asm: error: value %lu out of bounds [0-%d] during lsto (%s:%lu)\n",
+                                literal.literal_value, 15, in->name, reg.line);
+                            goto cleanup;
+                        }
+                        VECTOR_PUSH(instructions, make_op_load_stack_offset(reg.reg, SP, literal.literal_value));
+                    }
+                        break;
+                    //TODO: STACK OPS, CMP AND JMP
                     default:
                         fprintf(stderr, "asm: error: unimplemented instruction %s (%s:%lu)\n",
                             AsmInstructionStrings[instruction.instruction], in->name, instruction.line);
