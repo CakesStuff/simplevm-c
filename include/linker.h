@@ -7,6 +7,7 @@ typedef enum {
     RELOCATION_INVALID,
     RELOCATION_UPPER12_LOWER12,
     RELOCATION_LOWER4_LOWER4,
+    RELOCATION_OFFS10_XYZ,
 } LinkRelocationType;
 
 typedef enum {

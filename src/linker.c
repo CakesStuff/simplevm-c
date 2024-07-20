@@ -177,17 +177,18 @@ bool link_together(inp_v* ins, size_t file_1, size_t file_2)
                     break;
                 }
             }
-            else
+        }
+
+        if(j == lf_1->label_count)
+        {
+            lf.labels[lf.label_count] = lf_2->labels[i];
+            for(uint64_t n = 0; n < lf_2->relocation_count; n++)
             {
-                lf.labels[lf.label_count] = lf_2->labels[i];
-                for(uint64_t n = 0; n < lf_2->relocation_count; n++)
-                {
-                    if(lf_2->relocations[n].label_id == i)
-                        lf_2->relocations[n].label_id = lf.label_count;
-                }
-                lf.label_count++;
-                break;
+                if(lf_2->relocations[n].label_id == i)
+                    lf_2->relocations[n].label_id = lf.label_count;
             }
+            lf.label_count++;
+            break;
         }
     }
     lf.relocation_count = lf_1->relocation_count + lf_2->relocation_count;
@@ -212,15 +213,7 @@ bool link_together(inp_v* ins, size_t file_1, size_t file_2)
 
     char* new_name = malloc(strlen(VECTOR_EL(*ins, file_1).name) + 1 + strlen(VECTOR_EL(*ins, file_2).name) + 1);
     sprintf(new_name, "%s+%s", VECTOR_EL(*ins, file_1).name, VECTOR_EL(*ins, file_2).name);
-    if(file_1 > file_2)
-    {
-        VECTOR_REMOVE(*ins, file_1);
-        file_1 = file_2;
-    }
-    else
-    {
-        VECTOR_REMOVE(*ins, file_2);
-    }
+    VECTOR_CUT(*ins, file_2);
     VECTOR_EL(*ins, file_1).name = new_name;
     VECTOR_EL(*ins, file_1).content_size = lf.size + lf.label_count * sizeof(LinkLabel) + lf.relocation_count * sizeof(LinkRelocation)
                                             + sizeof(lf.label_count) + sizeof(lf.relocation_count) + sizeof(lf.size);
@@ -263,6 +256,12 @@ bool link_resolve(CCInput* in)
             case RELOCATION_LOWER4_LOWER4:
                 *(uint16_t*)(lf->content + lf->relocations[i].offset) &= 0b1111111111110000;
                 *(uint16_t*)(lf->content + lf->relocations[i].offset) |= lf->labels[lf->relocations[i].label_id].value & 0b0000000000001111;
+                break;
+            case RELOCATION_OFFS10_XYZ:
+                uint16_t off = lf->labels[lf->relocations[i].label_id].value - lf->relocations[i].offset;
+                *(uint16_t*)(lf->content + lf->relocations[i].offset) &= 0b1000000111110000;
+                *(uint16_t*)(lf->content + lf->relocations[i].offset) |= (off & 0b1111110000) << 5;
+                *(uint16_t*)(lf->content + lf->relocations[i].offset) |= (off & 0b0000001111);
                 break;
         }
     }
