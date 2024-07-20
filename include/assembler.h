@@ -135,11 +135,10 @@ typedef enum {
     ASM_INS_SSWP,
     ASM_INS_SDUP,
     ASM_INS_SROT,
-    ASM_INS_CMP,//TODO:
-    ASM_INS_LSTO,
-    //TODO: MORE INSTRUCTIONS
-    //TODO: JUMP OFFSET?
-    //TODO: addif?
+    ASM_INS_CMP,
+    ASM_INS_LBPO,
+    ASM_INS_JMPO,
+    ASM_INS_ADDQ,
 } AsmInstructionType;
 
 extern char* AsmInstructionStrings[];
@@ -166,12 +165,12 @@ typedef enum {
     ASM_TOKEN_DW,
     ASM_TOKEN_NEWLINE,
     ASM_TOKEN_MUL,
-    ASM_TOKEN_EQ,//TODO:
-    ASM_TOKEN_NEQ,//TODO:
-    ASM_TOKEN_LT,//TODO:
-    ASM_TOKEN_GT,//TODO:
-    ASM_TOKEN_LTE,//TODO:
-    ASM_TOKEN_GTE,//TODO:
+    ASM_TOKEN_EQ,
+    ASM_TOKEN_NEQ,
+    ASM_TOKEN_LT,
+    ASM_TOKEN_GT,
+    ASM_TOKEN_LTE,
+    ASM_TOKEN_GTE,
 } AsmTokenType;
 
 typedef struct {

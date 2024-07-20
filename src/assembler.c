@@ -199,7 +199,9 @@ char* AsmInstructionStrings[] = {
     [ASM_INS_SDUP] = "sdup",
     [ASM_INS_SROT] = "srot",
     [ASM_INS_CMP] = "cmp",
-    [ASM_INS_LSTO] = "lsto",
+    [ASM_INS_LBPO] = "lbpo",
+    [ASM_INS_JMPO] = "jmpo",
+    [ASM_INS_ADDQ] = "addq",
 };
 
 token_v asm_tokenize(uint8_t* content, size_t size, char* filename)
@@ -233,6 +235,18 @@ token_v asm_tokenize(uint8_t* content, size_t size, char* filename)
         else if(content[index] == '-')
             if((size - index == 1) || content[index+1] != '>') {PUSH_TYPE(ASM_TOKEN_MINUS);}
             else {index++;PUSH_TYPE(ASM_TOKEN_SHR_M);}
+        else if(content[index] == '=')
+            if((size - index == 1) || content[index+1] != '=') {fprintf(stderr, "asm: error: = is not a valid token (%s:%lu)\n", filename, line);}
+            else {index++;PUSH_TYPE(ASM_TOKEN_EQ);}
+        else if(content[index] == '!')
+            if((size - index == 1) || content[index+1] != '=') {fprintf(stderr, "asm: error: ! is not a valid token (%s:%lu)\n", filename, line);}
+            else {index++;PUSH_TYPE(ASM_TOKEN_NEQ);}
+        else if(content[index] == '<')
+            if((size - index == 1) || content[index+1] != '=') {PUSH_TYPE(ASM_TOKEN_LT);}
+            else {index++;PUSH_TYPE(ASM_TOKEN_LTE);}
+        else if(content[index] == '>')
+            if((size - index == 1) || content[index+1] != '=') {PUSH_TYPE(ASM_TOKEN_GT);}
+            else {index++;PUSH_TYPE(ASM_TOKEN_GTE);}
         else if(content[index] == ':') {PUSH_TYPE(ASM_TOKEN_COLON);}
         else if(content[index] == ',') {PUSH_TYPE(ASM_TOKEN_COMMA);}
         else if(content[index] == '<')
@@ -247,7 +261,7 @@ token_v asm_tokenize(uint8_t* content, size_t size, char* filename)
         else if(isalpha(content[index]))
         {
             size_t len = 0;
-            while(index + len < size && isalnum(content[index + len]))len++;
+            while(index + len < size && (isalnum(content[index + len]) || content[index + len] == '_'))len++;
             size_t i = 0;
             for(i = 0; i < ARRAYSIZE(AsmInstructionStrings); i++)
             {
@@ -400,7 +414,7 @@ token_v asm_tokenize(uint8_t* content, size_t size, char* filename)
                 return tokens;
             }
             size_t len = 1;
-            while(index + len < size && isalnum(content[index + len]))len++;
+            while(index + len < size && (isalnum(content[index + len]) || content[index + len] == '_'))len++;
             if(len == 1)
             {
                 fprintf(stderr, "asm: error: . is invalid except if used to mark local labels (%s:%lu)\n", filename, line);
@@ -1670,49 +1684,192 @@ bool asm_assemble(CCInput* in)
                         VECTOR_PUSH(instructions, make_op_stack(Zero, SP, StackRotate));
                     }
                         break;
-                    case ASM_INS_LSTO:
+                    case ASM_INS_CMP:
+                    {
+                        AsmToken op1 = VECTOR_EL(tokens, i);
+                        i++;
+                        if(op1.type != ASM_TOKEN_REGISTER)
+                        {
+                            fprintf(stderr, "asm: error: cmp compares two registers (%s:%lu)\n", in->name, op1.line);
+                            goto cleanup;
+                        }
+                        AsmToken cmp = VECTOR_EL(tokens, i);
+                        i++;
+                        switch(cmp.type)
+                        {
+                            case ASM_TOKEN_EQ:
+                            case ASM_TOKEN_NEQ:
+                            case ASM_TOKEN_GT:
+                            case ASM_TOKEN_GTE:
+                            case ASM_TOKEN_LT:
+                            case ASM_TOKEN_LTE:
+                                break;
+                            default:
+                                fprintf(stderr, "asm: error: invalid comparison (%s:%lu)\n", in->name, op1.line);
+                                goto cleanup;
+                        }
+                        AsmToken op2 = VECTOR_EL(tokens, i);
+                        i++;
+                        if(op2.type != ASM_TOKEN_REGISTER)
+                        {
+                            fprintf(stderr, "asm: error: cmp compares two registers (%s:%lu)\n", in->name, op1.line);
+                            goto cleanup;
+                        }
+                        AsmToken newLine = VECTOR_EL(tokens, i);
+                        if(newLine.type != ASM_TOKEN_NEWLINE)
+                        {
+                            fprintf(stderr, "asm: error: trailing tokens after cmp (%s:%lu)\n", in->name, op1.line);
+                            goto cleanup;
+                        }
+
+                        TestOp map[] = {
+                            [ASM_TOKEN_EQ] = TestEqual,
+                            [ASM_TOKEN_NEQ] = TestNotEqual,
+                            [ASM_TOKEN_GT] = TestGreaterThan,
+                            [ASM_TOKEN_GTE] = TestGreaterEqual,
+                            [ASM_TOKEN_LT] = TestLessThan,
+                            [ASM_TOKEN_LTE] = TestLessEqual,
+                        };
+                        VECTOR_PUSH(instructions, make_op_test(op1.reg, op2.reg, map[cmp.type]));
+                    }
+                        break;
+                    case ASM_INS_LBPO:
                     {
                         AsmToken reg = VECTOR_EL(tokens, i);
                         i++;
                         if(reg.type != ASM_TOKEN_REGISTER)
                         {
-                            fprintf(stderr, "asm: error: lsto expects a register as a destination (%s:%lu)\n", in->name, reg.line);
+                            fprintf(stderr, "asm: error: lbpo expects a register as a destination (%s:%lu)\n", in->name, reg.line);
                             goto cleanup;
                         }
                         AsmToken comma = VECTOR_EL(tokens, i);
                         i++;
-                        if(reg.type != ASM_TOKEN_COMMA)
+                        if(comma.type != ASM_TOKEN_COMMA)
                         {
-                            fprintf(stderr, "asm: error: lsto expects a register and a constant (%s:%lu)\n", in->name, reg.line);
+                            fprintf(stderr, "asm: error: lbpo expects a register and a constant (%s:%lu)\n", in->name, reg.line);
                             goto cleanup;
                         }
                         AsmToken literal = VECTOR_EL(tokens, i);
                         i++;
                         if(literal.type != ASM_TOKEN_LITERAL)
                         {
-                            fprintf(stderr, "asm: error: lsto expects a literal (%s:%lu)\n", in->name, reg.line);
+                            fprintf(stderr, "asm: error: lbpo expects a literal (%s:%lu)\n", in->name, reg.line);
                             goto cleanup;
                         }
                         AsmToken newLine = VECTOR_EL(tokens, i);
                         if(newLine.type != ASM_TOKEN_NEWLINE)
                         {
-                            fprintf(stderr, "asm: error: trailing tokens after lsto (%s:%lu)\n", in->name, reg.line);
+                            fprintf(stderr, "asm: error: trailing tokens after lbpo (%s:%lu)\n", in->name, reg.line);
                             goto cleanup;
                         }
                         if(literal.literal_value > 15)
                         {
-                            fprintf(stderr, "asm: error: value %lu out of bounds [0-%d] during lsto (%s:%lu)\n",
+                            fprintf(stderr, "asm: error: value %lu out of bounds [0-%d] during lbpo (%s:%lu)\n",
                                 literal.literal_value, 15, in->name, reg.line);
                             goto cleanup;
                         }
-                        VECTOR_PUSH(instructions, make_op_load_stack_offset(reg.reg, SP, literal.literal_value));
+                        VECTOR_PUSH(instructions, make_op_load_stack_offset(reg.reg, BP, literal.literal_value));
                     }
                         break;
-                    //TODO: STACK OPS, CMP AND JMP
-                    default:
-                        fprintf(stderr, "asm: error: unimplemented instruction %s (%s:%lu)\n",
-                            AsmInstructionStrings[instruction.instruction], in->name, instruction.line);
-                        goto cleanup;
+                    case ASM_INS_JMPO:
+                    {
+                        AsmToken label = VECTOR_EL(tokens, i);
+                        i++;
+                        if(label.type != ASM_TOKEN_LABEL)
+                        {
+                            fprintf(stderr, "asm: error: can only jump to a label (%s:%lu)\n", in->name, label.line);
+                            goto cleanup;
+                        }
+                        AsmToken newLine = VECTOR_EL(tokens, i);
+                        if(newLine.type != ASM_TOKEN_NEWLINE)
+                        {
+                            fprintf(stderr, "asm: error: trailing tokens after jmpo (%s:%lu)\n", in->name, label.line);
+                            goto cleanup;
+                        }
+                        
+                        uint8_t name[sizeof(((LinkLabel*)0)->name)];
+                        if(label.label_name[0] == '.' && !current)
+                        {
+                            fprintf(stderr, "asm: error: local label in global scope (%s:%lu)\n", in->name, label.line);
+                            goto cleanup;
+                        }
+                        if(label.label_name[0] == '.' && (strlen((char*)current->name) + strlen((char*)label.label_name) < sizeof(((LinkLabel*)0)->name)))
+                        {
+                            sprintf((char*)name, "%s%s", current->name, label.label_name);
+                        }
+                        else if(label.label_name[0] == '.')
+                        {
+                            fprintf(stderr, "asm: error: label too big (%s:%lu)\n", in->name, label.line);
+                            goto cleanup;
+                        }
+                        else
+                        {
+                            strcpy((char*)name, (char*)label.label_name);
+                        }
+
+                        size_t j;
+                        for(j = 0; j < VECTOR_SIZE(*labels); j++)
+                        {
+                            if(!strcmp((char*)VECTOR_EL(*labels, j).name, (char*)name))
+                            {
+                                LinkRelocation rel = {
+                                    .label_id = j,
+                                    .offset = VECTOR_SIZE(instructions) * 2,
+                                    .type = RELOCATION_OFFS10_XYZ,
+                                };
+                                VECTOR_PUSH(relocations, rel);
+                                VECTOR_PUSH(instructions, make_op_jump_offset(0));
+                                break;
+                            }
+                        }
+
+                        if(j == VECTOR_SIZE(*labels))
+                        {
+                            fprintf(stderr, "asm: error: could not find label %s (%s:%lu)\n", name, in->name, label.line);
+                            goto cleanup;
+                        }
+                    }
+                        break;
+                    case ASM_INS_ADDQ:
+                    {
+                        AsmToken reg = VECTOR_EL(tokens, i);
+                        i++;
+                        if(reg.type != ASM_TOKEN_REGISTER)
+                        {
+                            fprintf(stderr, "asm: error: addq expects a register as destination (%s:%lu)\n", in->name, reg.line);
+                            goto cleanup;
+                        }
+                        AsmToken comma = VECTOR_EL(tokens, i);
+                        i++;
+                        if(comma.type != ASM_TOKEN_COMMA)
+                        {
+                            fprintf(stderr, "asm: error: addq is missing a number (%s:%lu)\n", in->name, reg.line);
+                            goto cleanup;
+                        }
+                        AsmToken literal = VECTOR_EL(tokens, i);
+                        i++;
+                        if(literal.type != ASM_TOKEN_LITERAL)
+                        {
+                            fprintf(stderr, "asm: error: addq is missing a number (%s:%lu)\n", in->name, reg.line);
+                            goto cleanup;
+                        }
+                        AsmToken newLine = VECTOR_EL(tokens, i);
+                        if(newLine.type != ASM_TOKEN_NEWLINE)
+                        {
+                            fprintf(stderr, "asm: error: trailing tokens after addq (%s:%lu)\n", in->name, reg.line);
+                            goto cleanup;
+                        }
+
+                        if(literal.literal_value > 15 /* UINT4_MAX */)
+                        {
+                            fprintf(stderr, "asm: error: %lu out of bounds [0-%d] for addq (%s:%lu)\n", 
+                                literal.literal_value, 15, in->name, reg.line);
+                            goto cleanup;
+                        }
+
+                        VECTOR_PUSH(instructions, make_op_add_if(reg.reg, reg.reg, literal.literal_value));
+                    }
+                        break;
 
                     #undef REG_NUM
                 }

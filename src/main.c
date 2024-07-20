@@ -3,8 +3,6 @@
 #include<assembler.h>
 #include<linker.h>
 
-//TODO: ADD FUNC FOR LEA OR REMOVE?
-
 int main(int argc, char* argv[])
 {
     CCParams* params = compile_and_verify_argv(argc, argv);
@@ -126,7 +124,36 @@ int main(int argc, char* argv[])
         return 0;
     }
 
-    //TODO: LINK ENTRY
+    /**
+     * Entry Point sets up SP to point to the end of the program for maximum stack,
+     * and calls <entry> or main then halts.
+     */
+    CCInput entry = {
+        .name = "internal_entry_start",
+        .type = MODE_ASM,
+        .optimize = true,
+    };
+    entry.content = malloc(1000);
+    sprintf((char*)entry.content,
+        "extern compiler_generated_program_end\nextern %s\nmov SP, compiler_generated_program_end\nlea A, %s\npush PC\nmov PC, A\nhlt\n",
+        params->entry ? params->entry : "main", params->entry ? params->entry : "main");
+    entry.content_size = strlen((char*)entry.content);
+    VECTOR_PUSH(params->inputs, VECTOR_EL(params->inputs, 0));
+    asm_assemble(&entry);
+    VECTOR_EL(params->inputs, 0) = entry;
+    CCInput end = {
+        .name = "internal_program_end",
+        .type = MODE_ASM,
+        .optimize = true,
+    };
+    end.content = malloc(100);
+    sprintf((char*)end.content, "compiler_generated_program_end:\n");
+    end.content_size = strlen((char*)end.content);
+    asm_assemble(&end);
+    VECTOR_PUSH(params->inputs, end);
+
+    link_together(&params->inputs, 0, 1);
+    link_together(&params->inputs, 0, 1);
 
     if(!link_resolve(VECTOR_AT(params->inputs, 0)))
     {
