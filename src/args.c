@@ -68,6 +68,7 @@ CCParams* compile_and_verify_argv(int argc, char* argv[])
         printf("    -O0: do not optimize\n");
         printf("    -I<path>: add path to include paths\n");
         printf("    -o<file>: compile to file\n");
+        printf("    -e<label>: use <label> as entry point, default is main\n");
         printf("    -x<mode>: sets the language mode for indeterminable files\n");
         printf("    -: add file from stdin\n");
         ccparams_destroy(&params);
@@ -120,13 +121,56 @@ CCParams* compile_and_verify_argv(int argc, char* argv[])
         {
             optimize = true;
         }
+        else if(!strcmp(argv[i], "-o"))
+        {
+            if(i + 1 == argc)
+            {
+                fprintf(stderr, "%s: error: -o is missing a file\n", argv[0]);
+                ccparams_destroy(&params);
+                return NULL;
+            }
+            i++;
+            params.output = argv[i];
+        }
         else if(!strncmp(argv[i], "-o", 2))
         {
             params.output = argv[i] + 2;
         }
+        else if(!strcmp(argv[i], "-e"))
+        {
+            if(i + 1 == argc)
+            {
+                fprintf(stderr, "%s: error: -e is missing a label\n", argv[0]);
+                ccparams_destroy(&params);
+                return NULL;
+            }
+            i++;
+            params.entry = argv[i];
+        }
         else if(!strncmp(argv[i], "-e", 2))
         {
             params.entry = argv[i] + 2;
+        }
+        else if(!strcmp(argv[i], "-x"))
+        {
+            if(i + 1 == argc)
+            {
+                fprintf(stderr, "%s: error: -x is missing a mode\n", argv[0]);
+                ccparams_destroy(&params);
+                return NULL;
+            }
+            i++;
+            LanguageMode mode = parse_language_mode(argv[i]);
+            if(mode == MODE_INVALID)
+            {
+                fprintf(stderr, "%s: error: language mode %s not recognized\n", argv[0], argv[i]);
+                ccparams_destroy(&params);
+                return NULL;
+            }
+            else
+            {
+                languageMode = mode;
+            }
         }
         else if(!strncmp(argv[i], "-x", 2))
         {
@@ -141,6 +185,17 @@ CCParams* compile_and_verify_argv(int argc, char* argv[])
             {
                 languageMode = mode;
             }
+        }
+        else if(!strcmp(argv[i], "-e"))
+        {
+            if(i + 1 == argc)
+            {
+                fprintf(stderr, "%s: error: -I is missing a directory\n", argv[0]);
+                ccparams_destroy(&params);
+                return NULL;
+            }
+            i++;
+            VECTOR_PUSH(params.includePaths, argv[i]);
         }
         else if(!strncmp(argv[i], "-I", 2))
         {

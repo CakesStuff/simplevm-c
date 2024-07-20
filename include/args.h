@@ -41,6 +41,7 @@ typedef struct {
  *     -O0: do not optimize
  *     -I<path>: add path to include paths
  *     -o<file>: compile to file
+ *     -e<label>: use <label> as entry point, default is main
  *     -x<mode>: sets the language mode for indeterminable files
  *     -: add file from stdin
  * \param argc argument count
