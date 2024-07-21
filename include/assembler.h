@@ -184,7 +184,7 @@ typedef struct {
     };
 } AsmToken;
 
-DEFINE_VECTOR_OF(AsmToken) token_v;
+DEFINE_VECTOR_OF(AsmToken) asm_token_v;
 
 /**
  * Tokenizes an assembly source file.
@@ -194,7 +194,7 @@ DEFINE_VECTOR_OF(AsmToken) token_v;
  * \param filename the name of the assembly file
  * \returns A vector of tokens, is empty on failure.
  */
-token_v asm_tokenize(uint8_t* content, size_t size, char* filename);
+asm_token_v asm_tokenize(uint8_t* content, size_t size, char* filename);
 
 DEFINE_VECTOR_OF(LinkLabel) label_v;
 
@@ -209,7 +209,7 @@ DEFINE_VECTOR_OF(LinkLabel) label_v;
  * \param filename the name of the file
  * \returns A vector of labels or NULL on failure.
  */
-label_v* asm_first_pass(token_v* tokens, char* filename);
+label_v* asm_first_pass(asm_token_v* tokens, char* filename);
 
 DEFINE_VECTOR_OF(LinkRelocation) rel_v;
 DEFINE_VECTOR_OF(uint16_t) ins_v;

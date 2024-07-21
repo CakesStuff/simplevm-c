@@ -204,9 +204,9 @@ char* AsmInstructionStrings[] = {
     [ASM_INS_ADDQ] = "addq",
 };
 
-token_v asm_tokenize(uint8_t* content, size_t size, char* filename)
+asm_token_v asm_tokenize(uint8_t* content, size_t size, char* filename)
 {
-    token_v tokens;
+    asm_token_v tokens;
     VECTOR_INIT(tokens);
     size_t index = 0;
     size_t line = 1;
@@ -473,7 +473,7 @@ token_v asm_tokenize(uint8_t* content, size_t size, char* filename)
     return tokens;
 }
 
-label_v* asm_first_pass(token_v* tokens, char* filename)
+label_v* asm_first_pass(asm_token_v* tokens, char* filename)
 {
     label_v labels;
     VECTOR_INIT(labels);
@@ -757,7 +757,7 @@ label_v* asm_first_pass(token_v* tokens, char* filename)
 
 bool asm_assemble(CCInput* in)
 {
-    token_v tokens = asm_tokenize(in->content, in->content_size, in->name);
+    asm_token_v tokens = asm_tokenize(in->content, in->content_size, in->name);
     if(tokens.size == 0)
     {
         VECTOR_FREE(tokens);
