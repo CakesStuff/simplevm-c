@@ -27,5 +27,7 @@
 DEFINE_VECTOR_OF(uint8_t) VariableBuffer;
 
 #define ARRAYSIZE(a) (sizeof(a) / sizeof(a[0]))
+#define MIN(a, b) ((a) < (b) ? (a) : (b))
+#define MAX(a, b) ((a) > (b) ? (a) : (b))
 
 #endif /* _CORE_H */

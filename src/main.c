@@ -1,5 +1,6 @@
 #include<args.h>
 #include<files.h>
+#include<tokenizer.h>
 #include<assembler.h>
 #include<linker.h>
 
@@ -24,6 +25,9 @@ int main(int argc, char* argv[])
         }
     }
     
+    dc_token_v tokens = dc_tokenize(VECTOR_AT(params->inputs, 0), argv[0]);
+    return VECTOR_SIZE(tokens) == 0;
+
     //TODO: PREPROCESS
 
     if(params->preprocessOnly)
